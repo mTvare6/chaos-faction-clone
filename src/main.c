@@ -4,39 +4,6 @@
 #include "raygui.h"
 #include "raymath.h"
 
-
-#define G 3000
-#define PLAYER_JUMP_SPD 850.0f
-#define PLAYER_HOR_SPD 400.0f
-
-typedef struct Player {
-    Vector2 position;
-    float speed;
-    bool singleJump, doubleJump;
-    int jumpCounter;
-    int lives;
-
-} Player;
-
-typedef struct EnvItem {
-    Rectangle rect;
-    int blocking;
-    Color color;
-
-} EnvItem;
-
-static const int screenWidth = 1000;
-static const int screenHeight = 800;
-static const int maxJump = 2;
-
-void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
-
-void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-
 #define DARK_RED     (Color){204, 36, 29, 255}
 #define LIGHT_RED    (Color){251, 73, 52, 255}
 #define DARK_GREEN   (Color){152, 151, 26, 255}
@@ -69,6 +36,37 @@ void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *env
 #define FG4          (Color){168, 153, 132, 255}
 
 
+#define G 3000
+#define PLAYER_JUMP_SPD 850.0f
+#define PLAYER_HOR_SPD 400.0f
+
+typedef struct Player {
+    Vector2 position;
+    float speed;
+    bool singleJump, doubleJump;
+    int jumpCounter;
+    int lives;
+
+} Player;
+
+typedef struct EnvItem {
+    Rectangle rect;
+    int blocking;
+    Color color;
+
+} EnvItem;
+
+static const int screenWidth = 1000;
+static const int screenHeight = 800;
+static const int maxJump = 2;
+
+void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
+
+void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 
 int main(void)
 {
@@ -170,6 +168,10 @@ int main(void)
         if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
         if (IsKeyPressed(KEY_R)){
           player.position = (Vector2){ 400, 280 };
+        }
+        if (IsKeyPressed(KEY_ENTER) && (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT))){
+          ToggleFullscreen();
+          /* if (IsWindowFullscreen()){} */
         }
 
 
