@@ -1,5 +1,5 @@
 all: src/main.c
-	gcc -Iincludes -Iraygui -framework IOKit -framework Cocoa -framework OpenGL $(shell pkg-config --libs --cflags raylib) src/main.c -o main -Wextra -Wall -Wunused -pedantic
+	gcc -O3 -Iincludes -Iraygui -framework IOKit -framework Cocoa -framework OpenGL $(shell pkg-config --libs --cflags raylib) src/main.c -o main -Wextra -Wall -Wunused -pedantic
 
 raygui:
 	mkdir raygui

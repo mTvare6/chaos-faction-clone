@@ -43,8 +43,9 @@
 
 typedef struct Player {
     Vector2 position, size;
-    float speed;
-    int jumpCounter;
+    float jumpVel;
+    float xVel;
+    int jumpCount;
     int lives, maxLives;
     int health;
     struct timespec jump, boost;
@@ -70,22 +71,24 @@ void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *env
 struct timespec current;
 
 
-#define G 3000
-#define PLAYER_JUMP_SPD 850.0f
-#define PLAYER_HOR_SPD 400.0f
-#define CAMROT .15f
-#define PLAYER_JUMP_TIM 210
-static const int screenWidth = 1000;
+#define G                       (3000.f)
+#define PLAYER_JUMP_SPD         (850.f)
+#define PLAYER_BOOST_SPD        (650.f)
+#define PLAYER_HOR_SPD          (550.f)
+#define CAMROT                  (.15f)
+#define PLAYER_JUMP_TIM         (210*1000)
+#define FRICTION                (.94f)
+static const int screenWidth  = 1000;
 static const int screenHeight = 800;
-static const int maxJump = 2;
+static const int maxJump      = 2;
 
-int main(void)
-{
+int main(void){
+
+
     // Initialization
     //--------------------------------------------------------------------------------------
 
-    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "");
     int mw =  GetMonitorWidth(0),
         mh = GetMonitorHeight(0);
@@ -104,14 +107,13 @@ int main(void)
     bool exitWindow = false;
 
     Player player = { 0 };
+    clock_gettime(CLOCK_MONOTONIC_RAW, &player.jump);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &player.boost);
     player.position = (Vector2){ 400, 280 };
     player.size = (Vector2){40, 40};
-    player.speed = 0;
     player.lives = 5;
     player.maxLives = 5;
     player.health = 100;
-    clock_gettime(CLOCK_REALTIME, &player.jump);
-    clock_gettime(CLOCK_REALTIME, &player.boost);
 
 
 
@@ -122,7 +124,7 @@ int main(void)
         {{ 650, 300, 100, 10 }, 1, FG3 }
     };
 
-    int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
+    int envItemsLength = sizeof(envItems)/sizeof(*envItems);
 
     Camera2D camera = { 0 };
     camera.target = player.position;
@@ -140,7 +142,7 @@ int main(void)
     };
 
     int cameraOption = 0;
-    int cameraUpdatersLength = sizeof(cameraUpdaters)/sizeof(cameraUpdaters[0]);
+    int cameraUpdatersLength = sizeof(cameraUpdaters)/sizeof(*cameraUpdaters);
 
     char *cameraDescriptions[] = {
         "[ Follow player center ]",
@@ -156,7 +158,7 @@ int main(void)
     while (!WindowShouldClose() && !exitWindow){
         // Update
         //----------------------------------------------------------------------------------
-      clock_gettime(CLOCK_REALTIME, &current);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &current);
         float deltaTime = GetFrameTime();
         mousePosition = GetMousePosition();
         
@@ -186,7 +188,12 @@ int main(void)
 
         if(IsKeyDown(KEY_RIGHT_BRACKET)) camera.rotation+=CAMROT;
         if(IsKeyDown(KEY_LEFT_BRACKET))  camera.rotation-=CAMROT;
-        if(IsKeyPressed(KEY_EQUAL))      camera.rotation=.0f;
+        if(IsKeyPressed(KEY_EQUAL)){
+          if(camera.rotation!=.0f)
+            camera.rotation=.0f;
+          else
+            camera.rotation=180.f;
+        }
 
         if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
         if (IsKeyPressed(KEY_R)){
@@ -227,8 +234,6 @@ int main(void)
             EndMode2D();
 
 
-
-
             DrawText(TextFormat("[ %.0f, %.0f ]", player.position.x, player.position.y), 20, 30, 20, FG);
             DrawText(cameraDescriptions[cameraOption], 20, 55, 10, FG);
 
@@ -241,21 +246,38 @@ int main(void)
 }
 
 void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta){
-  double boostdiff = ((current.tv_sec - player->boost.tv_sec) * 1e6 + (current.tv_nsec - player->boost.tv_nsec) / 1e6);
-  if(IsKeyDown(KEY_X) && player->jumpCounter!=maxJump && boostdiff > 7000 ){
+
+  double boostdiff = ((current.tv_sec - player->boost.tv_sec) * 1e6 + (current.tv_nsec - player->boost.tv_nsec) / 1e3);
+
+  if(IsKeyDown(KEY_X) && player->jumpCount!=maxJump && boostdiff > 2000 * 1000){
     player->boost = current;
   }
-  if(boostdiff<100){
-    if (IsKeyDown(KEY_LEFT)) player->position.x -= 3*PLAYER_HOR_SPD*delta;
-    if (IsKeyDown(KEY_RIGHT)) player->position.x += 3*PLAYER_HOR_SPD*delta;
-  }
-  if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
-  if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
+  if(boostdiff<150*1000){
+    if(IsKeyDown(KEY_LEFT)){
+      player->position.x -= 2*PLAYER_BOOST_SPD*delta;
+      player->jumpVel=0;
+    }
+    if(IsKeyDown(KEY_RIGHT)){
+      player->position.x += 2*PLAYER_BOOST_SPD*delta;
+      player->jumpVel=0;
+    }
 
-  if (IsKeyDown(KEY_UP) && player->jumpCounter>0 && ((current.tv_sec - player->jump.tv_sec) * 1e6 + (current.tv_nsec - player->jump.tv_nsec) / 1e6) > PLAYER_JUMP_TIM ){
-    player->speed = -PLAYER_JUMP_SPD*(maxJump==player->jumpCounter?1:maxJump-player->jumpCounter);
+    
+  }
+  if (IsKeyDown(KEY_LEFT)){
+      player->xVel = (-PLAYER_HOR_SPD)*delta;
+  }
+  if (IsKeyDown(KEY_RIGHT)){
+      player->xVel = PLAYER_HOR_SPD*delta;
+  }
+
+  player->xVel *= FRICTION;
+  player->position.x += player->xVel;
+
+  if (IsKeyDown(KEY_UP) && player->jumpCount>0 && ((current.tv_sec - player->jump.tv_sec) * 1e6 + (current.tv_nsec - player->jump.tv_nsec) / 1e3) > PLAYER_JUMP_TIM ){
+    player->jumpVel = -PLAYER_JUMP_SPD*(maxJump==player->jumpCount?1:maxJump-player->jumpCount);
     player->jump = current;
-    --player->jumpCounter;
+    --player->jumpCount;
   }
 
     int hitObstacle = 0;
@@ -267,21 +289,21 @@ void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float d
             ei->rect.x <= p->x &&
             ei->rect.x + ei->rect.width >= p->x &&
             ei->rect.y >= p->y &&
-            ei->rect.y < p->y + player->speed*delta)
+            ei->rect.y < p->y + player->jumpVel*delta)
         {
             hitObstacle = 1;
-            player->speed = 0.0f;
+            player->jumpVel = 0.0f;
             p->y = ei->rect.y;
         }
     }
 
     if (!hitObstacle)
     {
-        player->position.y += player->speed*delta;
-        player->speed += G*delta;
+        player->position.y += player->jumpVel*delta;
+        player->jumpVel += G*delta;
     }
     else {
-      player->jumpCounter=maxJump;
+      player->jumpCount=maxJump;
     }
 
     if (player->position.y > screenHeight){
@@ -362,7 +384,7 @@ void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *env
         }
     }
     else{
-        if (player->jumpCounter!=0 && (player->speed == 0) && (player->position.y != camera->target.y)){
+        if (player->jumpCount!=0 && (player->jumpVel == 0) && (player->position.y != camera->target.y)){
             eveningOut = 1;
             evenOutTarget = player->position.y;
         }
