@@ -60,13 +60,14 @@ typedef struct EnvItem {
 } EnvItem;
 
 
-void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
+void UpdatePlayer                   (                  Player *player, EnvItem *envItems, int envItemsLength, float delta);
 
-void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenter             (Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenterInsideMap    (Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenterSmoothFollow (Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraEvenOutOnLanding   (Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraPlayerBoundsPush   (Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+
 
 struct timespec current;
 
@@ -74,13 +75,13 @@ struct timespec current;
 #define G                       (3000.f)
 #define PLAYER_JUMP_SPD         (850.f)
 #define PLAYER_BOOST_SPD        (650.f)
-#define PLAYER_HOR_SPD          (550.f)
+#define PLAYER_HOR_SPD          (15.f)
 #define CAMROT                  (.15f)
-#define PLAYER_JUMP_TIM         (210*1000)
-#define FRICTION                (.94f)
-static const int screenWidth  = 1000;
-static const int screenHeight = 800;
-static const int maxJump      = 2;
+#define PLAYER_JUMP_TIM         (220*1000)
+#define FRICTION                (.98f)
+static const int screenWidth  = (1000);
+static const int screenHeight = (800);
+static const int maxJump      = (2);
 
 int main(void){
 
@@ -265,14 +266,15 @@ void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float d
     
   }
   if (IsKeyDown(KEY_LEFT)){
-      player->xVel = (-PLAYER_HOR_SPD)*delta;
+      player->xVel -= PLAYER_HOR_SPD*delta;
   }
   if (IsKeyDown(KEY_RIGHT)){
-      player->xVel = PLAYER_HOR_SPD*delta;
+      player->xVel += PLAYER_HOR_SPD*delta;
   }
 
   player->xVel *= FRICTION;
   player->position.x += player->xVel;
+  /* player->position.x += player->xVel*500*delta; */
 
   if (IsKeyDown(KEY_UP) && player->jumpCount>0 && ((current.tv_sec - player->jump.tv_sec) * 1e6 + (current.tv_nsec - player->jump.tv_nsec) / 1e3) > PLAYER_JUMP_TIM ){
     player->jumpVel = -PLAYER_JUMP_SPD*(maxJump==player->jumpCount?1:maxJump-player->jumpCount);
@@ -281,8 +283,7 @@ void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float d
   }
 
     int hitObstacle = 0;
-    for (int i = 0; i < envItemsLength; i++)
-    {
+    for (int i = 0; i < envItemsLength; i++){
         EnvItem *ei = envItems + i;
         Vector2 *p = &(player->position);
         if (ei->blocking &&
